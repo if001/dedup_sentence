@@ -3,6 +3,7 @@ impl c++
 
 https://github.com/HojiChar/HojiChar/blob/main/hojichar/filters/deduplication.py
 
+https://arxiv.org/abs/2107.06499
 
 ## 準備
 
