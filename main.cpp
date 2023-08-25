@@ -78,11 +78,9 @@ void processFiles(const std::string &inputDir, const std::string &outputDir){
     std::unordered_set<std::string> processedHashes;
     ThreadPool pool(NUM_WORKERS);
 
-    for (const auto &file : fs::directory_iterator(inputDir)) {
-        std::cout << file.path().string() << std::endl;
-        // processFile(file.path().string(), outputDir, std::ref(processedHashes), pool);        
-    };
-    std::cout << std::flush;
+    for (const auto &file : fs::directory_iterator(inputDir)) {        
+        processFile(file.path().string(), outputDir, std::ref(processedHashes), pool);        
+    }    
 }
 
 int main(int argc, char *argv[]){    
