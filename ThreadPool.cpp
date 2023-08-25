@@ -5,7 +5,7 @@
 ThreadPool::ThreadPool(size_t threads)
     : stop(false) 
 {
-    std::cout << "use thread: " << std::thread::hardware_concurrency << std::endl;
+    std::cout << "use thread: " << std::thread::hardware_concurrency() << std::endl;
 
     for(size_t i = 0; i < threads; ++i)
         workers.emplace_back(
