@@ -8,7 +8,7 @@ CXXFLAGS=-std=c++17 -Wall -Wextra -pthread
 # CXXFLAGS = -O3 -std=c++17 -march=native -mtune=native
 LDFLAGS=-lstdc++fs
 
-all: deduplicate
+all: deduplicate clean
 
 deduplicate: main.o Hasher.o text.o MurmurHash3.o simdjson.o
 	$(CXX) $(CXXFLAGS) -o deduplicate main.o Hasher.o text.o MurmurHash3.o simdjson.o $(LDFLAGS) $(LDLIBS) $(LDHASHER)

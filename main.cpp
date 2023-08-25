@@ -37,12 +37,16 @@ void displayProgressBar(size_t progress, size_t total){
 }
 
 void processFile(const std::string &filePath, const std::string &outputDir, Hasher &hasher, std::unordered_set<std::string> &processedHashes){
+    std::cout << "Processing file: " << filePath << std::endl;
+
     std::vector<std::string> outputLines;
 
     ondemand::parser parser;
     padded_string json = padded_string::load(filePath);    
     ondemand::document_stream docs = parser.iterate_many(json);
     static size_t progress = 0;
+    size_t duplicatedCount = 0;
+
     for (auto doc : docs) {
         std::string textContent;        
         std::string_view res;
@@ -57,6 +61,7 @@ void processFile(const std::string &filePath, const std::string &outputDir, Hash
             for (const std::string& hashValue : myText.getHashes()) {
                 if (processedHashes.find(hashValue) != processedHashes.end()) {
                     isDuplicate = true;
+                    duplicatedCount++;
                     break;
                 }
             }
@@ -70,7 +75,8 @@ void processFile(const std::string &filePath, const std::string &outputDir, Hash
             mtx.unlock();
         }
         displayProgressBar(++progress, fs::file_size(filePath));
-    }    
+    }
+    std::cout << "Duplicated texts in " << filePath << ": " << duplicatedCount << std::endl;
 
     std::string outputFileName = outputDir + "/" + fs::path(filePath).filename().string();
     std::ofstream outFile(outputFileName);
@@ -83,7 +89,7 @@ void processFile(const std::string &filePath, const std::string &outputDir, Hash
 }
 
 void processFiles(const std::string &inputDir, const std::string &outputDir){
-    Hasher hasher(3, 30, 10, 3);
+    Hasher hasher(5, 200, 20, 10);
     std::unordered_set<std::string> processedHashes;
 
     std::vector<std::thread> threads;
