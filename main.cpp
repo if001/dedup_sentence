@@ -10,9 +10,8 @@
 using namespace simdjson;
 namespace fs = std::experimental::filesystem;
 
-void processFile(const std::string &filePath, const std::string &outputDir){
-    std::cout << "\nProcessing file: " << filePath << std::endl;
-    std::unordered_set<std::string> processedHashes;
+void processFile(const std::string &filePath, const std::string &outputDir,  std::unordered_set<std::string> &processedHashes){
+    std::cout << "\nProcessing file: " << filePath << std::endl;    
     Hasher hasher(5, 100, 10, 10);
     std::vector<std::string> outputLines;
 
@@ -46,7 +45,9 @@ void processFile(const std::string &filePath, const std::string &outputDir){
                 outputLines.push_back(textContent);
             }
         }
-        std::cout << "    \r" << i << std::flush;
+        if (i % 5000 == 0) {
+            std::cout << "    \r" << i << std::flush;
+        }        
         i++;
     }
     std::cout << "\nDuplicated: " << duplicatedCount << std::endl;
@@ -62,8 +63,9 @@ void processFile(const std::string &filePath, const std::string &outputDir){
 }
 
 void processFiles(const std::string &inputDir, const std::string &outputDir){        
+    std::unordered_set<std::string> processedHashes;
     for (const auto &file : fs::directory_iterator(inputDir)) {
-        processFile(file.path().string(), outputDir);
+        processFile(file.path().string(), outputDir, std::ref(processedHashes));
     }
 }
 
