@@ -20,6 +20,7 @@ void processFiles(const std::string& inputDir, const std::string& outputDir) {
 
     for (const auto& file : fs::directory_iterator(inputDir)) {
         if (file.path().extension() == ".jsonl") {
+            std::cout << "file: " << file.path() << std::endl;
             std::string outputFileName = outputDir + "/" + file.path().filename().string();
             std::vector<std::string> outputLines;
 
