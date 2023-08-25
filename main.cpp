@@ -10,14 +10,15 @@
 using namespace simdjson;
 namespace fs = std::experimental::filesystem;
 
-void processFile(const std::string &filePath, const std::string &outputDir, Hasher &hasher, std::unordered_set<std::string> &processedHashes){
+void processFile(const std::string &filePath, const std::string &outputDir){
     std::cout << "\nProcessing file: " << filePath << std::endl;
-
+    std::unordered_set<std::string> processedHashes;
+    Hasher hasher(5, 100, 10, 5);
     std::vector<std::string> outputLines;
 
     ondemand::parser parser;
     padded_string json = padded_string::load(filePath);    
-    ondemand::document_stream docs = parser.iterate_many(json);    
+    ondemand::document_stream docs = parser.iterate_many(json);
     size_t duplicatedCount = 0;
     int i=0;
     for (auto doc : docs) {
@@ -60,12 +61,9 @@ void processFile(const std::string &filePath, const std::string &outputDir, Hash
     outFile.close();
 }
 
-void processFiles(const std::string &inputDir, const std::string &outputDir){
-    Hasher hasher(5, 200, 20, 10);
-    std::unordered_set<std::string> processedHashes;
-    
+void processFiles(const std::string &inputDir, const std::string &outputDir){        
     for (const auto &file : fs::directory_iterator(inputDir)) {
-        processFile(file.path().string(), outputDir, std::ref(hasher), processedHashes);
+        processFile(file.path().string(), outputDir);
     }
 }
 
