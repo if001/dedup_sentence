@@ -12,7 +12,7 @@
 using namespace simdjson;
 namespace fs = std::experimental::filesystem;
 
-constexpr int NUM_WORKERS = 4;
+constexpr int NUM_WORKERS = 2;
 
 void processFile(const std::string &filePath, const std::string &outputDir,  std::unordered_set<std::string> &processedHashes, ThreadPool &pool){
     std::cout << "\nProcessing file: " << filePath << std::endl;    
