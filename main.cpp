@@ -2,51 +2,24 @@
 #include "text.hpp"
 #include <unordered_set>
 #include <experimental/filesystem>
-#include <thread>
 #include <vector>
-#include <mutex>
 #include <fstream>
+#include <iostream>
 #include <nlohmann/json.hpp>
 #include "simdjson.h"
 using namespace simdjson;
 namespace fs = std::experimental::filesystem;
 
-std::mutex mtx; // 重複判定
-
-std::mutex progress_mtx; // プログレスバー
-
-void displayProgressBar(size_t progress, size_t total){
-    const size_t barWidth = 60;
-    float percentage = static_cast<float>(progress) / total;
-
-    progress_mtx.lock();
-    std::cout << "[";
-    size_t pos = static_cast<size_t>(barWidth * percentage);
-    for (size_t i = 0; i < barWidth; ++i)
-    {
-        if (i < pos)
-            std::cout << "=";
-        else if (i == pos)
-            std::cout << ">";
-        else
-            std::cout << " ";
-    }
-    std::cout << "] " << int(percentage * 100.0) << " %\r";
-    std::cout.flush();
-    progress_mtx.unlock();
-}
-
 void processFile(const std::string &filePath, const std::string &outputDir, Hasher &hasher, std::unordered_set<std::string> &processedHashes){
-    std::cout << "Processing file: " << filePath << std::endl;
+    std::cout << "\nProcessing file: " << filePath << std::endl;
 
     std::vector<std::string> outputLines;
 
     ondemand::parser parser;
     padded_string json = padded_string::load(filePath);    
-    ondemand::document_stream docs = parser.iterate_many(json);
-    static size_t progress = 0;
+    ondemand::document_stream docs = parser.iterate_many(json);    
     size_t duplicatedCount = 0;
-
+    int i=0;
     for (auto doc : docs) {
         std::string textContent;        
         std::string_view res;
@@ -56,7 +29,6 @@ void processFile(const std::string &filePath, const std::string &outputDir, Hash
             text myText(textContent);
             hasher.apply(myText);
 
-            mtx.lock();
             bool isDuplicate = false;
             for (const std::string& hashValue : myText.getHashes()) {
                 if (processedHashes.find(hashValue) != processedHashes.end()) {
@@ -72,11 +44,11 @@ void processFile(const std::string &filePath, const std::string &outputDir, Hash
                 }
                 outputLines.push_back(textContent);
             }
-            mtx.unlock();
         }
-        displayProgressBar(++progress, fs::file_size(filePath));
+        std::cout << "    \r" << i << std::flush;
+        i++;
     }
-    std::cout << "Duplicated texts in " << filePath << ": " << duplicatedCount << std::endl;
+    std::cout << "\nDuplicated: " << duplicatedCount << std::endl;
 
     std::string outputFileName = outputDir + "/" + fs::path(filePath).filename().string();
     std::ofstream outFile(outputFileName);
@@ -91,19 +63,9 @@ void processFile(const std::string &filePath, const std::string &outputDir, Hash
 void processFiles(const std::string &inputDir, const std::string &outputDir){
     Hasher hasher(5, 200, 20, 10);
     std::unordered_set<std::string> processedHashes;
-
-    std::vector<std::thread> threads;
-
-    for (const auto &file : fs::directory_iterator(inputDir)){
-        if (file.path().extension() == ".jsonl"){
-            threads.emplace_back(processFile, file.path().string(), outputDir, std::ref(hasher), std::ref(processedHashes));
-        }
-    }
-
-    for (std::thread &th : threads){
-        if (th.joinable()){
-            th.join();
-        }
+    
+    for (const auto &file : fs::directory_iterator(inputDir)) {
+        processFile(file.path().string(), outputDir, std::ref(hasher), processedHashes);
     }
 }
 

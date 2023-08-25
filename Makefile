@@ -4,8 +4,7 @@ LDLIBS =
 LDHASHER =
 
 CXX=g++
-CXXFLAGS=-std=c++17 -Wall -Wextra -pthread
-# CXXFLAGS = -O3 -std=c++17 -march=native -mtune=native
+CXXFLAGS=-std=c++17 -Wall -Wextra
 LDFLAGS=-lstdc++fs
 
 all: deduplicate clean

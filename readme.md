@@ -10,18 +10,29 @@ https://arxiv.org/abs/2107.06499
 
 ## 準備
 
+json dump用に`nlohmann/json`を使う。  
+https://github.com/nlohmann/json  
+
 ```
 sudo apt install nlohmann-json3-dev
 ```
 
+`simdjson`で高速にjsonlファイルを処理できるらしい
+
+https://github.com/simdjson/simdjson
+
 ```
-wget https://raw.githubusercontent.com/simdjson/simdjson/master/singleheader/simdjson.h https://raw.githubusercontent.com/simdjson/simdjson/master/singleheader/simdjson.cpp 
+wget https://raw.githubusercontent.com/simdjson/simdjson/master/singleheader/simdjson.h 
+wget https://raw.githubusercontent.com/simdjson/simdjson/master/singleheader/simdjson.cpp 
 ```
 
 
-clone this repository
-https://github.com/aappleby/smhasher.git
+文章のハッシュ計算用に`MurmurHash`を使う。  
+https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp
 
+```
+git clone https://github.com/aappleby/smhasher.git
+```
 
 ```
 make
