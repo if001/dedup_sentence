@@ -7,10 +7,14 @@
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include "simdjson.h"
+#include "ThreadPool.hpp"
+
 using namespace simdjson;
 namespace fs = std::experimental::filesystem;
 
-void processFile(const std::string &filePath, const std::string &outputDir,  std::unordered_set<std::string> &processedHashes){
+constexpr int NUM_WORKERS = 4;
+
+void processFile(const std::string &filePath, const std::string &outputDir,  std::unordered_set<std::string> &processedHashes, ThreadPool &pool){
     std::cout << "\nProcessing file: " << filePath << std::endl;    
     Hasher hasher(5, 100, 10, 10);
     std::vector<std::string> outputLines;
@@ -18,32 +22,40 @@ void processFile(const std::string &filePath, const std::string &outputDir,  std
     ondemand::parser parser;
     padded_string json = padded_string::load(filePath);    
     ondemand::document_stream docs = parser.iterate_many(json);
-    size_t duplicatedCount = 0;
-    int i=0;
-    for (auto doc : docs) {
-        std::string textContent;
+
+    std::vector<text> myTexts;    
+    
+    for (auto doc : docs) {        
         std::string_view res;
         auto error = doc["text"].get(res);
+        std::string textContent = std::string(res);
         if (!error) {
-            std::string textContent = std::string(res);
-            text myText(textContent);
-            hasher.apply(myText);
+            auto future = pool.enqueue([&]() {
+                text myText(textContent);
+                hasher.apply(myText);
+                return myText;
+            });
+            myTexts.push_back(future.get());
+        }
+    }
 
-            bool isDuplicate = false;
+    size_t duplicatedCount = 0;
+    int i=0;
+    for(auto myText : myTexts){
+        bool isDuplicate = false;
+        for (const std::string& hashValue : myText.getHashes()) {
+            if (processedHashes.find(hashValue) != processedHashes.end()) {
+                isDuplicate = true;
+                duplicatedCount++;
+                break;
+            }
+        }
+
+        if (!isDuplicate) {
             for (const std::string& hashValue : myText.getHashes()) {
-                if (processedHashes.find(hashValue) != processedHashes.end()) {
-                    isDuplicate = true;
-                    duplicatedCount++;
-                    break;
-                }
+                processedHashes.insert(hashValue);
             }
-
-            if (!isDuplicate) {
-                for (const std::string& hashValue : myText.getHashes()) {
-                    processedHashes.insert(hashValue);
-                }
-                outputLines.push_back(textContent);
-            }
+            outputLines.push_back(myText.getContent());
         }
         if (i % 5000 == 0) {
             std::cout << "    \r" << i << std::flush;
@@ -64,8 +76,10 @@ void processFile(const std::string &filePath, const std::string &outputDir,  std
 
 void processFiles(const std::string &inputDir, const std::string &outputDir){        
     std::unordered_set<std::string> processedHashes;
+    ThreadPool pool(NUM_WORKERS);
+
     for (const auto &file : fs::directory_iterator(inputDir)) {
-        processFile(file.path().string(), outputDir, std::ref(processedHashes));
+        processFile(file.path().string(), outputDir, std::ref(processedHashes), pool);
     }
 }
 

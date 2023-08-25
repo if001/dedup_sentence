@@ -5,12 +5,12 @@ LDHASHER =
 
 CXX=g++
 CXXFLAGS=-std=c++17 -Wall -Wextra
-LDFLAGS=-lstdc++fs
+LDFLAGS=-lstdc++fs -pthread 
 
 all: deduplicate clean
 
-deduplicate: main.o Hasher.o text.o MurmurHash3.o simdjson.o
-	$(CXX) $(CXXFLAGS) -o deduplicate main.o Hasher.o text.o MurmurHash3.o simdjson.o $(LDFLAGS) $(LDLIBS) $(LDHASHER)
+deduplicate: main.o Hasher.o text.o MurmurHash3.o simdjson.o ThreadPool.o
+	$(CXX) $(CXXFLAGS) -o deduplicate main.o Hasher.o text.o MurmurHash3.o simdjson.o ThreadPool.o $(LDFLAGS) $(LDLIBS) $(LDHASHER)
 
 main.o: main.cpp
 	$(CXX) $(CXXFLAGS) -c main.cpp
@@ -26,6 +26,9 @@ MurmurHash3.o:
 
 simdjson.o: simdjson.cpp simdjson.h
 	$(CXX) -c ./simdjson.cpp
+
+ThreadPool.o: ThreadPool.cpp ThreadPool.hpp
+	$(CXX) -c ./ThreadPool.cpp
 
 clean:
 	rm -f *.o
