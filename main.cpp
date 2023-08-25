@@ -79,8 +79,10 @@ void processFiles(const std::string &inputDir, const std::string &outputDir){
     ThreadPool pool(NUM_WORKERS);
 
     for (const auto &file : fs::directory_iterator(inputDir)) {
-        processFile(file.path().string(), outputDir, std::ref(processedHashes), pool);
-    }
+        std::cout << file.path().string() << std::endl;
+        // processFile(file.path().string(), outputDir, std::ref(processedHashes), pool);        
+    };
+    std::cout << std::flush;
 }
 
 int main(int argc, char *argv[]){    
