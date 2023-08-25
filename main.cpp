@@ -13,7 +13,7 @@ namespace fs = std::experimental::filesystem;
 void processFile(const std::string &filePath, const std::string &outputDir){
     std::cout << "\nProcessing file: " << filePath << std::endl;
     std::unordered_set<std::string> processedHashes;
-    Hasher hasher(5, 100, 10, 5);
+    Hasher hasher(5, 100, 10, 10);
     std::vector<std::string> outputLines;
 
     ondemand::parser parser;
@@ -22,7 +22,7 @@ void processFile(const std::string &filePath, const std::string &outputDir){
     size_t duplicatedCount = 0;
     int i=0;
     for (auto doc : docs) {
-        std::string textContent;        
+        std::string textContent;
         std::string_view res;
         auto error = doc["text"].get(res);
         if (!error) {
