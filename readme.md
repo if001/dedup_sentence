@@ -14,6 +14,11 @@ https://arxiv.org/abs/2107.06499
 sudo apt install nlohmann-json3-dev
 ```
 
+```
+wget https://raw.githubusercontent.com/simdjson/simdjson/master/singleheader/simdjson.h https://raw.githubusercontent.com/simdjson/simdjson/master/singleheader/simdjson.cpp 
+```
+
+
 clone this repository
 https://github.com/aappleby/smhasher.git
 

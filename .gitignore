@@ -3,3 +3,5 @@ samples/
 smhasher/
 .vscode
 deduplicate
+simdjson.cpp
+simdjson.h

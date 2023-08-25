@@ -4,13 +4,14 @@ LDLIBS =
 LDHASHER =
 
 CXX=g++
-CXXFLAGS=-std=c++17 -Wall -Wextra
+CXXFLAGS=-std=c++17 -Wall -Wextra -pthread
+# CXXFLAGS = -O3 -std=c++17 -march=native -mtune=native
 LDFLAGS=-lstdc++fs
 
 all: deduplicate
 
-deduplicate: main.o Hasher.o text.o
-	$(CXX) $(CXXFLAGS) -o deduplicate main.o Hasher.o text.o MurmurHash3.o $(LDFLAGS) $(LDLIBS) $(LDHASHER)
+deduplicate: main.o Hasher.o text.o MurmurHash3.o simdjson.o
+	$(CXX) $(CXXFLAGS) -o deduplicate main.o Hasher.o text.o MurmurHash3.o simdjson.o $(LDFLAGS) $(LDLIBS) $(LDHASHER)
 
 main.o: main.cpp
 	$(CXX) $(CXXFLAGS) -c main.cpp
@@ -23,5 +24,9 @@ text.o: text.cpp text.hpp
 
 MurmurHash3.o:
 	$(CXX) -c smhasher/src/MurmurHash3.cpp
+
+simdjson.o: simdjson.cpp simdjson.h
+	$(CXX) -c ./simdjson.cpp
+
 clean:
 	rm -f *.o

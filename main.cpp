@@ -1,68 +1,108 @@
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <string>
-#include <unordered_map>
-#include <unordered_set>
-#include <nlohmann/json.hpp>
-#include "text.hpp"
 #include "Hasher.hpp"
-#include <experimental/filesystem>  // GCC 9
-
-using json = nlohmann::json;
-// namespace fs = std::filesystem;
+#include "text.hpp"
+#include <unordered_set>
+#include <experimental/filesystem>
+#include <thread>
+#include <vector>
+#include <mutex>
+#include <fstream>
+#include <nlohmann/json.hpp>
+#include "simdjson.h"
+using namespace simdjson;
 namespace fs = std::experimental::filesystem;
 
+std::mutex mtx; // 重複判定
 
-void processFiles(const std::string& inputDir, const std::string& outputDir) {
+std::mutex progress_mtx; // プログレスバー
+
+void displayProgressBar(size_t progress, size_t total){
+    const size_t barWidth = 60;
+    float percentage = static_cast<float>(progress) / total;
+
+    progress_mtx.lock();
+    std::cout << "[";
+    size_t pos = static_cast<size_t>(barWidth * percentage);
+    for (size_t i = 0; i < barWidth; ++i)
+    {
+        if (i < pos)
+            std::cout << "=";
+        else if (i == pos)
+            std::cout << ">";
+        else
+            std::cout << " ";
+    }
+    std::cout << "] " << int(percentage * 100.0) << " %\r";
+    std::cout.flush();
+    progress_mtx.unlock();
+}
+
+void processFile(const std::string &filePath, const std::string &outputDir, Hasher &hasher, std::unordered_set<std::string> &processedHashes){
+    std::vector<std::string> outputLines;
+
+    ondemand::parser parser;
+    padded_string json = padded_string::load(filePath);    
+    ondemand::document_stream docs = parser.iterate_many(json);
+    static size_t progress = 0;
+    for (auto doc : docs) {
+        std::string textContent;        
+        std::string_view res;
+        auto error = doc["text"].get(res);
+        if (!error) {
+            std::string textContent = std::string(res);
+            text myText(textContent);
+            hasher.apply(myText);
+
+            mtx.lock();
+            bool isDuplicate = false;
+            for (const std::string& hashValue : myText.getHashes()) {
+                if (processedHashes.find(hashValue) != processedHashes.end()) {
+                    isDuplicate = true;
+                    break;
+                }
+            }
+
+            if (!isDuplicate) {
+                for (const std::string& hashValue : myText.getHashes()) {
+                    processedHashes.insert(hashValue);
+                }
+                outputLines.push_back(textContent);
+            }
+            mtx.unlock();
+        }
+        displayProgressBar(++progress, fs::file_size(filePath));
+    }    
+
+    std::string outputFileName = outputDir + "/" + fs::path(filePath).filename().string();
+    std::ofstream outFile(outputFileName);
+    for (const auto &line : outputLines) {
+        nlohmann::json li;
+        li["text"]= line;
+        outFile << li.dump() << std::endl;
+    }
+    outFile.close();
+}
+
+void processFiles(const std::string &inputDir, const std::string &outputDir){
     Hasher hasher(3, 30, 10, 3);
     std::unordered_set<std::string> processedHashes;
 
-    for (const auto& file : fs::directory_iterator(inputDir)) {
-        if (file.path().extension() == ".jsonl") {
-            std::cout << "file: " << file.path() << std::endl;
-            std::string outputFileName = outputDir + "/" + file.path().filename().string();
-            std::vector<std::string> outputLines;
+    std::vector<std::thread> threads;
 
-            std::ifstream inFile(file.path());
-            std::string line;
+    for (const auto &file : fs::directory_iterator(inputDir)){
+        if (file.path().extension() == ".jsonl"){
+            threads.emplace_back(processFile, file.path().string(), outputDir, std::ref(hasher), std::ref(processedHashes));
+        }
+    }
 
-            while (std::getline(inFile, line)) {
-                json jsonObj = json::parse(line);
-                std::string textContent = jsonObj["text"].get<std::string>();
-
-                text myText(textContent);
-                hasher.apply(myText);
-
-                bool isDuplicate = false;
-                for (const std::string& hashValue : myText.getHashes()) {
-                    if (processedHashes.find(hashValue) != processedHashes.end()) {
-                        isDuplicate = true;
-                        break;
-                    }
-                }
-
-                if (!isDuplicate) {
-                    for (const std::string& hashValue : myText.getHashes()) {
-                        processedHashes.insert(hashValue);
-                    }
-                    outputLines.push_back(line);
-                }
-            }
-
-            inFile.close();
-
-            std::ofstream outFile(outputFileName);
-            for (const auto& line : outputLines) {
-                outFile << line << std::endl;
-            }
-            outFile.close();
+    for (std::thread &th : threads){
+        if (th.joinable()){
+            th.join();
         }
     }
 }
 
-int main(int argc, char* argv[]) {
-    if (argc < 3) {
+int main(int argc, char *argv[]){    
+    if (argc < 3){
         std::cerr << "Usage: " << argv[0] << " <input directory> <output directory>" << std::endl;
         return 1;
     }
