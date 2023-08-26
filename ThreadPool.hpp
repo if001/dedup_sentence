@@ -3,25 +3,21 @@
 
 #include <vector>
 #include <queue>
+#include <thread>
 #include <mutex>
 #include <condition_variable>
-#include <future>
 #include <functional>
-#include <stdexcept>
+#include <future>
 
 class ThreadPool {
 public:
     ThreadPool(size_t);
-    std::future<void> enqueue(std::function<void(std::string)> f, std::string arg);
     ~ThreadPool();
+    std::future<void> enqueue(std::function<void()> task);
 
 private:
-    // need to keep track of threads so we can join them
-    std::vector< std::thread > workers;
-    // the task queue
-    std::queue< std::function<void()> > tasks;
-
-    // synchronization
+    std::vector<std::thread> workers;
+    std::queue<std::function<void()>> tasks;
     std::mutex queue_mutex;
     std::condition_variable condition;
     bool stop;

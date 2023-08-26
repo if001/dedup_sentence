@@ -23,22 +23,22 @@ void processFile(const std::string &filePath, const std::string &outputDir,  std
     padded_string json = padded_string::load(filePath);    
     ondemand::document_stream docs = parser.iterate_many(json);
 
-    std::vector<text> myTexts;
-    std::vector<std::future<void>> futures;
+    std::vector<text> myTexts;    
     std::cout << "start cal hash..." << std::endl;
     for (auto doc : docs) {
         std::string_view res;
         auto error = doc["text"].get(res);
-        std::string textContent = std::string(res);
-        
-        if (!error) {
-             futures.push_back(std::move(pool.enqueue([&](std::string textContent) {                
-                text myText(textContent);                
-                hasher.apply(myText);
-                myTexts.push_back(myText);
-            }, textContent)));
-        }
+        myTexts.emplace_back(std::string(res));
     }
+
+    std::vector<std::future<void>> futures;
+    for(text& myText: myTexts) {
+        futures.push_back(pool.enqueue([&hasher, &myText]() {
+            hasher.apply(myText);
+        }));
+    }
+
+
     std::cout << "wait cal hash..." << std::endl;
     for (auto& future : futures) {
         future.get();
@@ -64,7 +64,7 @@ void processFile(const std::string &filePath, const std::string &outputDir,  std
             outputLines.push_back(myText.getContent());
         }
         if (i % 5000 == 0) {
-            std::cout << "    \r" << i << std::flush;
+            std::cout << "dedup:    \r" << i << std::flush;
         }        
         i++;
     }
