@@ -5,3 +5,4 @@ smhasher/
 deduplicate
 simdjson.cpp
 simdjson.h
+blacklist.txt

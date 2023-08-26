@@ -60,24 +60,49 @@ void processFile(const std::string &filePath, const std::string &outputDir,  std
         outFile << li.dump() << std::endl;
     }
     outFile.close();
+
 }
 
-void processFiles(const std::string &inputDir, const std::string &outputDir){        
+
+void processFiles(int start, int end, const std::string& inputDir, const std::string& outputDir, const std::string& processedHashesFile) {
     std::unordered_set<std::string> processedHashes;
-    for (const auto &file : fs::directory_iterator(inputDir)) {
-        processFile(file.path().string(), outputDir, std::ref(processedHashes));
+    if (!processedHashesFile.empty()) {
+        std::ifstream hashesFile(processedHashesFile);
+        std::cout << 'load blacklist...' << processedHashesFile << std::endl;
+        if (hashesFile.is_open()) {
+            std::string hash;
+            while (hashesFile >> hash) {
+                processedHashes.insert(hash);
+            }
+            hashesFile.close();
+        }
+    }
+
+    for (int i = start; i <= end; ++i) {
+        std::string filePath = inputDir + "/" + std::to_string(i) + ".jsonl";
+        processFile(filePath, outputDir, std::ref(processedHashes));
+
+        // processedHashes を更新        
+        std::ofstream hashesFile(processedHashesFile);
+        std::cout << 'save blacklist...' << processedHashesFile << std::endl;
+        for (const std::string& hash : processedHashes) {
+            hashesFile << hash << std::endl;
+        }
+        hashesFile.close();
     }
 }
 
 int main(int argc, char *argv[]){    
-    if (argc < 3){
-        std::cerr << "Usage: " << argv[0] << " <input directory> <output directory>" << std::endl;
+    if (argc < 5) {
+        std::cerr << "Usage: " << argv[0] << " <start> <end> <inputDir> <outputDir> [<processedHashesFile>]" << std::endl;
         return 1;
     }
+    int start = std::stoi(argv[1]);
+    int end = std::stoi(argv[2]);
+    std::string inputDir = argv[3];
+    std::string outputDir = argv[4];
+    std::string processedHashesFile = argc > 5 ? argv[5] : "";
 
-    std::string inputDir = argv[1];
-    std::string outputDir = argv[2];
-
-    processFiles(inputDir, outputDir);
+    processFiles(start, end, inputDir, outputDir, processedHashesFile);
     return 0;
 }
