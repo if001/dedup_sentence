@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include "text.hpp"
 
 class Hasher {
 private:
@@ -13,5 +14,5 @@ private:
 
 public:
     Hasher(size_t n, size_t n_minhash, size_t n_bucket, size_t bucket_size);
-    void apply(class text &txt) const;
+    void apply(text& txt) const;
 };

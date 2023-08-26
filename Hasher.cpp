@@ -51,6 +51,5 @@ void Hasher::apply(text &txt) const {
         bucketedHashes.push_back(ss.str());
     }
     
-
     txt.setHashes(bucketedHashes);
 }

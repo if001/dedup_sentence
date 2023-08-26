@@ -1,5 +1,6 @@
 #include "Hasher.hpp"
 #include "text.hpp"
+#include "ThreadPool.hpp"
 #include <unordered_set>
 #include <experimental/filesystem>
 #include <vector>
@@ -7,7 +8,6 @@
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include "simdjson.h"
-#include "ThreadPool.hpp"
 
 using namespace simdjson;
 namespace fs = std::experimental::filesystem;
@@ -23,26 +23,32 @@ void processFile(const std::string &filePath, const std::string &outputDir,  std
     padded_string json = padded_string::load(filePath);    
     ondemand::document_stream docs = parser.iterate_many(json);
 
-    std::vector<text> myTexts;    
-    
-    for (auto doc : docs) {        
+    std::vector<text> myTexts;
+    std::vector<std::future<void>> futures;
+    std::cout << "start cal hash..." << std::endl;
+    for (auto doc : docs) {
         std::string_view res;
         auto error = doc["text"].get(res);
         std::string textContent = std::string(res);
+        
         if (!error) {
-            auto future = pool.enqueue([&]() {
-                text myText(textContent);
+             futures.push_back(std::move(pool.enqueue([&](std::string textContent) {                
+                text myText(textContent);                
                 hasher.apply(myText);
-                return myText;
-            });
-            myTexts.push_back(future.get());
+                myTexts.push_back(myText);
+            }, textContent)));
         }
     }
+    std::cout << "wait cal hash..." << std::endl;
+    for (auto& future : futures) {
+        future.get();
+    }
 
+    std::cout << "start check dedup..." << std::endl;
     size_t duplicatedCount = 0;
     int i=0;
-    for(auto myText : myTexts){
-        bool isDuplicate = false;
+    for(auto myText : myTexts){        
+        bool isDuplicate = false;        
         for (const std::string& hashValue : myText.getHashes()) {
             if (processedHashes.find(hashValue) != processedHashes.end()) {
                 isDuplicate = true;
@@ -54,7 +60,7 @@ void processFile(const std::string &filePath, const std::string &outputDir,  std
         if (!isDuplicate) {
             for (const std::string& hashValue : myText.getHashes()) {
                 processedHashes.insert(hashValue);
-            }
+            }            
             outputLines.push_back(myText.getContent());
         }
         if (i % 5000 == 0) {
@@ -66,32 +72,59 @@ void processFile(const std::string &filePath, const std::string &outputDir,  std
 
     std::string outputFileName = outputDir + "/" + fs::path(filePath).filename().string();
     std::ofstream outFile(outputFileName);
-    for (const auto &line : outputLines) {
+    for (const auto &line : outputLines) {        
         nlohmann::json li;
         li["text"]= line;
         outFile << li.dump() << std::endl;
     }
     outFile.close();
+
 }
 
-void processFiles(const std::string &inputDir, const std::string &outputDir){        
-    std::unordered_set<std::string> processedHashes;
-    ThreadPool pool(NUM_WORKERS);
 
-    for (const auto &file : fs::directory_iterator(inputDir)) {        
-        processFile(file.path().string(), outputDir, std::ref(processedHashes), pool);        
-    }    
+void processFiles(int start, int end, const std::string& inputDir, const std::string& outputDir, const std::string& processedHashesFile) {
+    std::unordered_set<std::string> processedHashes;
+
+    ThreadPool pool(NUM_WORKERS);
+    std::cout << "worker..." << NUM_WORKERS << std::endl;
+
+    if (!processedHashesFile.empty()) {        
+        std::ifstream hashesFile(processedHashesFile);
+        std::cout << "load blacklist file..." << processedHashesFile << std::endl;
+        if (hashesFile.is_open()) {
+            std::string hash;
+            while (hashesFile >> hash) {
+                processedHashes.insert(hash);
+            }
+            hashesFile.close();
+        }
+    }
+
+    for (int i = start; i <= end; ++i) {
+        std::string filePath = inputDir + "/" + std::to_string(i) + ".jsonl";
+        processFile(filePath, outputDir, std::ref(processedHashes), pool);
+    
+        // processedHashes を更新        
+        std::ofstream hashesFile(processedHashesFile);
+        std::cout << "save blacklist file..." << processedHashesFile << std::endl;
+        for (const std::string& hash : processedHashes) {
+            hashesFile << hash << std::endl;
+        }
+        hashesFile.close();
+    }
 }
 
 int main(int argc, char *argv[]){    
-    if (argc < 3){
-        std::cerr << "Usage: " << argv[0] << " <input directory> <output directory>" << std::endl;
+    if (argc < 5) {
+        std::cerr << "Usage: " << argv[0] << " <start> <end> <inputDir> <outputDir> [<processedHashesFile>]" << std::endl;
         return 1;
     }
+    int start = std::stoi(argv[1]);
+    int end = std::stoi(argv[2]);
+    std::string inputDir = argv[3];
+    std::string outputDir = argv[4];
+    std::string processedHashesFile = argc > 5 ? argv[5] : "";
 
-    std::string inputDir = argv[1];
-    std::string outputDir = argv[2];
-
-    processFiles(inputDir, outputDir);
+    processFiles(start, end, inputDir, outputDir, processedHashesFile);
     return 0;
 }
