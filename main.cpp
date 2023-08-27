@@ -15,7 +15,7 @@ namespace fs = std::experimental::filesystem;
 
 constexpr int NUM_WORKERS = 2;
 
-void processFile(const std::string &filePath, const std::string &outputDir,  std::unordered_set<std::string> &processedHashes, ThreadPool &pool){
+void processFile(const std::string &filePath, const std::string &outputDir,  std::unordered_set<std::string> &fullProcessedHashes, std::unordered_set<std::string> &partProcessedHashes, ThreadPool &pool){
     std::cout << "\nProcessing file: " << filePath << std::endl;    
     Hasher hasher(5, 100, 10, 10);
     std::vector<std::string> outputLines;
@@ -51,7 +51,9 @@ void processFile(const std::string &filePath, const std::string &outputDir,  std
     for(auto myText : myTexts){        
         bool isDuplicate = false;        
         for (const std::string& hashValue : myText.getHashes()) {
-            if (processedHashes.find(hashValue) != processedHashes.end()) {
+            if (fullProcessedHashes.find(hashValue) != fullProcessedHashes.end() || 
+                partProcessedHashes.find(hashValue) != partProcessedHashes.end()
+            ) {
                 isDuplicate = true;
                 duplicatedCount++;
                 break;
@@ -60,8 +62,8 @@ void processFile(const std::string &filePath, const std::string &outputDir,  std
 
         if (!isDuplicate) {
             for (const std::string& hashValue : myText.getHashes()) {
-                processedHashes.insert(hashValue);
-            }            
+                partProcessedHashes.insert(hashValue);
+            }
             outputLines.push_back(myText.getContent());
         }
         if (i % 5000 == 0) {
@@ -85,6 +87,7 @@ void processFile(const std::string &filePath, const std::string &outputDir,  std
 
 void processFiles(int start, int end, const std::string& inputDir, const std::string& outputDir, const std::string& processedHashesDir) {
     std::unordered_set<std::string> processedHashes;
+    
 
     ThreadPool pool(NUM_WORKERS);
     std::cout << "worker..." << NUM_WORKERS << std::endl;
@@ -106,18 +109,31 @@ void processFiles(int start, int end, const std::string& inputDir, const std::st
     }
 
     for (int i = start; i <= end; ++i) {
+        std::unordered_set<std::string> partProcessedHashes;
         std::string filePath = inputDir + "/" + std::to_string(i) + ".jsonl";
-        processFile(filePath, outputDir, std::ref(processedHashes), pool);
-    
+        processFile(
+            filePath, 
+            outputDir, 
+            std::ref(processedHashes),
+            std::ref(partProcessedHashes), 
+            pool
+        );
+
         // processedHashes を更新
         std::string processedHashesFile = processedHashesDir + "/" + std::to_string(i) + ".txt";
         std::ofstream hashesFile(processedHashesFile);
-        for (const std::string& hash : processedHashes) {
+        for (const std::string& hash : partProcessedHashes) {
             hashesFile << hash << std::endl;
         }
         hashesFile.close();
         std::cout << "save blacklist file..." << processedHashesFile << std::endl;
-    }
+
+        // merge
+        for (const std::string& hash : partProcessedHashes) {
+            processedHashes.insert(hash);
+        }
+        partProcessedHashes.clear();
+    }    
 }
 
 int main(int argc, char *argv[]){    
