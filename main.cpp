@@ -5,6 +5,7 @@
 #include <experimental/filesystem>
 #include <vector>
 #include <fstream>
+#include <filesystem>
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include "simdjson.h"
@@ -82,22 +83,26 @@ void processFile(const std::string &filePath, const std::string &outputDir,  std
 }
 
 
-void processFiles(int start, int end, const std::string& inputDir, const std::string& outputDir, const std::string& processedHashesFile) {
+void processFiles(int start, int end, const std::string& inputDir, const std::string& outputDir, const std::string& processedHashesDir) {
     std::unordered_set<std::string> processedHashes;
 
     ThreadPool pool(NUM_WORKERS);
     std::cout << "worker..." << NUM_WORKERS << std::endl;
-
-    if (!processedHashesFile.empty()) {        
-        std::ifstream hashesFile(processedHashesFile);
-        std::cout << "load blacklist file..." << processedHashesFile << std::endl;
-        if (hashesFile.is_open()) {
-            std::string hash;
-            while (hashesFile >> hash) {
-                processedHashes.insert(hash);
+    
+    for (int i = 0; i <= 119; ++i) {
+        std::string processedHashesFile = processedHashesDir + "/" + std::to_string(i) + ".txt";
+        if(fs::exists(processedHashesFile)) {
+            std::ifstream hashesFile(processedHashesFile);
+            std::cout << "load blacklist file..." << processedHashesFile << std::endl;
+            if (hashesFile.is_open()) {
+                std::string hash;
+                while (hashesFile >> hash) {
+                    processedHashes.insert(hash);
+                }
+                hashesFile.close();
             }
-            hashesFile.close();
         }
+
     }
 
     for (int i = start; i <= end; ++i) {
@@ -105,26 +110,27 @@ void processFiles(int start, int end, const std::string& inputDir, const std::st
         processFile(filePath, outputDir, std::ref(processedHashes), pool);
     
         // processedHashes を更新
-        std::ofstream hashesFile(processedHashesFile);        
+        std::string processedHashesFile = processedHashesDir + "/" + std::to_string(i) + ".txt";
+        std::ofstream hashesFile(processedHashesFile);
         for (const std::string& hash : processedHashes) {
             hashesFile << hash << std::endl;
         }
         hashesFile.close();
         std::cout << "save blacklist file..." << processedHashesFile << std::endl;
-    }    
+    }
 }
 
 int main(int argc, char *argv[]){    
     if (argc < 5) {
-        std::cerr << "Usage: " << argv[0] << " <start> <end> <inputDir> <outputDir> [<processedHashesFile>]" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " <start> <end> <inputDir> <outputDir> [<processedHashesDir>]" << std::endl;
         return 1;
     }
     int start = std::stoi(argv[1]);
     int end = std::stoi(argv[2]);
     std::string inputDir = argv[3];
     std::string outputDir = argv[4];
-    std::string processedHashesFile = argc > 5 ? argv[5] : "";
+    std::string processedHashesDir = argc > 5 ? argv[5] : "";
 
-    processFiles(start, end, inputDir, outputDir, processedHashesFile);
+    processFiles(start, end, inputDir, outputDir, processedHashesDir);
     return 0;
 }
