@@ -104,14 +104,14 @@ void processFiles(int start, int end, const std::string& inputDir, const std::st
         std::string filePath = inputDir + "/" + std::to_string(i) + ".jsonl";
         processFile(filePath, outputDir, std::ref(processedHashes), pool);
     
-        // processedHashes を更新        
-        std::ofstream hashesFile(processedHashesFile);
-        std::cout << "save blacklist file..." << processedHashesFile << std::endl;
+        // processedHashes を更新
+        std::ofstream hashesFile(processedHashesFile);        
         for (const std::string& hash : processedHashes) {
             hashesFile << hash << std::endl;
         }
-    }
-    hashesFile.close();
+        hashesFile.close();
+        std::cout << "save blacklist file..." << processedHashesFile << std::endl;
+    }    
 }
 
 int main(int argc, char *argv[]){    
