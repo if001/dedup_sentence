@@ -110,8 +110,8 @@ void processFiles(int start, int end, const std::string& inputDir, const std::st
         for (const std::string& hash : processedHashes) {
             hashesFile << hash << std::endl;
         }
-        hashesFile.close();
     }
+    hashesFile.close();
 }
 
 int main(int argc, char *argv[]){    
