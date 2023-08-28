@@ -28,6 +28,7 @@ void processFile(const std::string &filePath, const std::string &outputDir,  std
     std::cout << "start cal hash..." << std::endl;
     for (auto doc : docs) {
         std::string_view res;
+        // todo handle error
         auto error = doc["text"].get(res);
         myTexts.emplace_back(std::string(res));
     }
@@ -85,13 +86,9 @@ void processFile(const std::string &filePath, const std::string &outputDir,  std
 }
 
 
-void processFiles(int start, int end, const std::string& inputDir, const std::string& outputDir, const std::string& processedHashesDir) {
+void processFiles(int start, int end, const std::string& inputDir, const std::string& outputDir, const std::string& processedHashesDir) {    
+    // blacklistをロード
     std::unordered_set<std::string> processedHashes;
-    
-
-    ThreadPool pool(NUM_WORKERS);
-    std::cout << "worker..." << NUM_WORKERS << std::endl;
-    
     for (int i = 0; i <= 119; ++i) {
         std::string processedHashesFile = processedHashesDir + "/" + std::to_string(i) + ".txt";
         if(fs::exists(processedHashesFile)) {
@@ -105,9 +102,10 @@ void processFiles(int start, int end, const std::string& inputDir, const std::st
                 hashesFile.close();
             }
         }
-
     }
 
+    ThreadPool pool(NUM_WORKERS);
+    std::cout << "worker..." << NUM_WORKERS << std::endl;
     for (int i = start; i <= end; ++i) {
         std::unordered_set<std::string> partProcessedHashes;
         std::string filePath = inputDir + "/" + std::to_string(i) + ".jsonl";
@@ -132,12 +130,12 @@ void processFiles(int start, int end, const std::string& inputDir, const std::st
         hashesFile.close();
         std::cout << "save blacklist file..." << processedHashesFile << std::endl;
 
-        // merge
+        // blacklistをmerge
         for (const std::string& hash : partProcessedHashes) {
             processedHashes.insert(hash);
         }
         partProcessedHashes.clear();
-    }    
+    }
 }
 
 int main(int argc, char *argv[]){    
