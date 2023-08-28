@@ -17,18 +17,12 @@ constexpr int NUM_WORKERS = 2;
 
 void processFile(const std::string &filePath, const std::string &outputDir,  std::unordered_set<std::string> &fullProcessedHashes, std::unordered_set<std::string> &partProcessedHashes, ThreadPool &pool){
     std::cout << "\nProcessing file: " << filePath << std::endl;    
-    Hasher hasher(5, 100, 10, 10);
-    Hasher hasher(5, 100, 10, 10);
-    std::vector<std::string> outputLines;
-    Hasher hasher(5, 100, 10, 10);    
-    std::vector<std::string> outputLines;
 
     ondemand::parser parser;
     padded_string json = padded_string::load(filePath);    
     ondemand::document_stream docs = parser.iterate_many(json);
 
-    std::vector<text> myTexts;    
-    std::vector<std::future<void>> futures;
+    std::vector<text> myTexts;
     std::cout << "start cal hash..." << std::endl;
     for (auto doc : docs) {
         std::string_view res;
@@ -37,6 +31,7 @@ void processFile(const std::string &filePath, const std::string &outputDir,  std
         myTexts.emplace_back(std::string(res));
     }
 
+    Hasher hasher(5, 100, 10, 10);
     std::vector<std::future<void>> futures;
     for(text& myText: myTexts) {
         futures.push_back(pool.enqueue([&hasher, &myText]() {
