@@ -6,16 +6,20 @@ https://github.com/HojiChar/HojiChar/blob/main/hojichar/filters/deduplication.py
 
 https://arxiv.org/abs/2107.06499
 
-指定したディレクトリ内のjsonlファイルに対してdedup処理を行い、指定したディレクトリに出力する。  
-ディレクトリのファイルは、1.jsonl、2.jsonl、...想定。  
-blacklist_pathを指定すると、これまで弾いた文章を記録できる。  
-初めて動かす場合は空のファイルを指定する。resumeしたいときは保存したblacklist_pathを指定。  
-
-実行は開始indexと終了indexを指定する。
 
 ```
-./deduplicate {start_index} {end_index} {target_dir} {output_dir} {blacklist_path}
+Usage: ./deduplicate <start> <end> <inputDir> <outputDir> <processedHashesDir>
 ```
+
+
+指定したディレクトリ<inputDir>内のjsonlファイルに対してdedup処理を行い、指定したディレクトリ<outputDir>に出力する。  
+ディレクトリのファイルは、1.jsonl、2.jsonl、を想定。  
+startとendで処理したいファイルのindexを指定する。  
+
+<processedHashesDir>でblacklist_dirを指定できる。  
+これまで弾いた文章を記録として、1.txt、2.txt...が出力される。  
+初めて動かす場合はディレクトリは空で動かす。  
+
 
 ## 準備
 

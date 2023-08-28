@@ -142,14 +142,14 @@ void processFiles(int start, int end, const std::string& inputDir, const std::st
 
 int main(int argc, char *argv[]){    
     if (argc < 5) {
-        std::cerr << "Usage: " << argv[0] << " <start> <end> <inputDir> <outputDir> [<processedHashesDir>]" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " <start> <end> <inputDir> <outputDir> <processedHashesDir>" << std::endl;
         return 1;
     }
     int start = std::stoi(argv[1]);
     int end = std::stoi(argv[2]);
     std::string inputDir = argv[3];
     std::string outputDir = argv[4];
-    std::string processedHashesDir = argc > 5 ? argv[5] : "";
+    std::string processedHashesDir = argv[5];
 
     processFiles(start, end, inputDir, outputDir, processedHashesDir);
     return 0;
