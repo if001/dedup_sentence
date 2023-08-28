@@ -18,6 +18,9 @@ constexpr int NUM_WORKERS = 2;
 void processFile(const std::string &filePath, const std::string &outputDir,  std::unordered_set<std::string> &fullProcessedHashes, std::unordered_set<std::string> &partProcessedHashes, ThreadPool &pool){
     std::cout << "\nProcessing file: " << filePath << std::endl;    
     Hasher hasher(5, 100, 10, 10);
+    Hasher hasher(5, 100, 10, 10);
+    std::vector<std::string> outputLines;
+    Hasher hasher(5, 100, 10, 10);    
     std::vector<std::string> outputLines;
 
     ondemand::parser parser;
@@ -25,6 +28,7 @@ void processFile(const std::string &filePath, const std::string &outputDir,  std
     ondemand::document_stream docs = parser.iterate_many(json);
 
     std::vector<text> myTexts;    
+    std::vector<std::future<void>> futures;
     std::cout << "start cal hash..." << std::endl;
     for (auto doc : docs) {
         std::string_view res;
@@ -40,13 +44,13 @@ void processFile(const std::string &filePath, const std::string &outputDir,  std
         }));
     }
 
-
     std::cout << "wait cal hash..." << std::endl;
     for (auto& future : futures) {
         future.get();
     }
 
     std::cout << "start check dedup..." << std::endl;
+    std::vector<std::string> outputLines;
     size_t duplicatedCount = 0;
     int i=0;
     for(auto myText : myTexts){        
@@ -82,7 +86,7 @@ void processFile(const std::string &filePath, const std::string &outputDir,  std
         outFile << li.dump() << std::endl;
     }
     outFile.close();
-
+    myTexts.shrink_to_fit();
 }
 
 
@@ -132,9 +136,9 @@ void processFiles(int start, int end, const std::string& inputDir, const std::st
 
         // blacklistをmerge
         for (const std::string& hash : partProcessedHashes) {
-            processedHashes.insert(hash);
+            processedHashes.insert(hash);            
         }
-        partProcessedHashes.clear();
+        partProcessedHashes.clear();        
     }
 }
 
