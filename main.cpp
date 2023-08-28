@@ -111,6 +111,10 @@ void processFiles(int start, int end, const std::string& inputDir, const std::st
     for (int i = start; i <= end; ++i) {
         std::unordered_set<std::string> partProcessedHashes;
         std::string filePath = inputDir + "/" + std::to_string(i) + ".jsonl";
+        if(!fs::exists(filePath)) {
+            std::cout << filePath <<"not found... skip..." << std::endl;
+            continue;
+        }
         processFile(
             filePath, 
             outputDir, 
