@@ -6,3 +6,6 @@ deduplicate
 simdjson.cpp
 simdjson.h
 blacklist.txt
+blacklists/
+test
+data/
