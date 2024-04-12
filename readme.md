@@ -43,3 +43,7 @@ make
 ```
 ./deduplicate {target_dir} {output_dir}
 ```
+
+# Lisence
+
+This project is licensed under the MIT License, see the LICENSE.txt file for details
