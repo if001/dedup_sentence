@@ -69,3 +69,7 @@ BUCKET_SIZE = 10
 Ngramに分割、N_MINHASHのハッシュ値から、N_BUKET個のハッシュ値を生成 
 
 https://github.com/HojiChar/HojiChar/blob/main/hojichar/filters/deduplication.py
+
+# Lisence
+
+This project is licensed under the MIT License, see the LICENSE.txt file for details
